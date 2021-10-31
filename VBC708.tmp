@@ -1,0 +1,193 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+  Persistable = 0  'NotPersistable
+  DataBindingBehavior = 0  'vbNone
+  DataSourceBehavior  = 0  'vbNone
+  MTSTransactionMode  = 0  'NotAnMTSObject
+END
+Attribute VB_Name = "Amain"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
+'======================================
+'   页面绘制器
+    Option Explicit
+    Dim Page As GPage
+'======================================
+
+'=================================================================
+'x 鼠标点击的x坐标
+'y 鼠标点击的y坐标
+'以下子过程和自定义函数中出现的参数均为此除非特殊注释
+'=================================================================
+Public Function Numberofmines(X As Integer, y As Integer) As Integer '自定义函数计算周围雷的个数
+'======================计算点击角落时周围的雷数============================
+    If X = 1 And y = 1 Then
+        Numberofmines = Abs(CInt(reseau(X + 1, y).bomb) + CInt(reseau(X + 1, y + 1).bomb) + CInt(reseau(X, y + 1).bomb))
+    ElseIf X = 1 And y = reseauy Then
+        Numberofmines = Abs(CInt(reseau(X, y - 1).bomb) + CInt(reseau(X + 1, y - 1).bomb) + CInt(reseau(X + 1, y).bomb))
+    ElseIf X = reseaux And y = 1 Then
+        Numberofmines = Abs(CInt(reseau(X - 1, y).bomb) + CInt(reseau(X - 1, y + 1).bomb) + CInt(reseau(X, y + 1).bomb))
+    ElseIf X = reseaux And y = reseauy Then
+        Numberofmines = Abs(CInt(reseau(X - 1, y).bomb) + CInt(reseau(X - 1, y - 1).bomb) + CInt(reseau(X, y - 1).bomb))
+'==================================================================
+'======================计算非角落时在边界的周围雷数==========================
+    ElseIf y = 1 And X > 1 And X < reseaux Then
+        Numberofmines = Abs(CInt(reseau(X + 1, y).bomb) + CInt(reseau(X - 1, y).bomb) + CInt(reseau(X, y + 1).bomb) + _
+        CInt(reseau(X - 1, y + 1).bomb) + CInt(reseau(X + 1, y + 1).bomb))
+    ElseIf y = reseauy And X > 1 And X < reseaux Then
+        Numberofmines = Abs(CInt(reseau(X + 1, y).bomb) + CInt(reseau(X - 1, y).bomb) + CInt(reseau(X, y - 1).bomb) + _
+        CInt(reseau(X - 1, y - 1).bomb) + CInt(reseau(X + 1, y - 1).bomb))
+    ElseIf X = 1 And y > 1 And y < reseauy Then
+        Numberofmines = Abs(CInt(reseau(X, y - 1).bomb) + CInt(reseau(X, y + 1).bomb) + CInt(reseau(X + 1, y + 1).bomb) _
+        + CInt(reseau(X + 1, y - 1).bomb) + CInt(reseau(X + 1, y).bomb))
+    ElseIf X = reseaux And y > 1 And y < reseauy Then
+        Numberofmines = Abs(CInt(reseau(X, y - 1).bomb) + CInt(reseau(X, y + 1).bomb) + CInt(reseau(X - 1, y).bomb) + _
+        CInt(reseau(X - 1, y - 1).bomb) + CInt(reseau(X - 1, y + 1).bomb))
+'==================================================================
+'======================计算在中间时计算雷的个数============================
+    Else
+        Numberofmines = Abs(CInt(reseau(X, y - 1).bomb) + CInt(reseau(X, y + 1).bomb) + CInt(reseau(X - 1, y).bomb) + _
+        CInt(reseau(X + 1, y).bomb) + CInt(reseau(X - 1, y + 1).bomb) + CInt(reseau(X - 1, y - 1).bomb) + CInt(reseau(X + _
+        1, y - 1).bomb) + CInt(reseau(X + 1, y + 1).bomb))
+    End If
+'==================================================================
+End Function
+
+Public Sub Initial() '游戏初始化
+    For roundi = 1 To UBound(reseau, 1)
+            For roundj = 1 To UBound(reseau, 2)
+                With reseau(roundi, roundj)
+                    .named = "游戏网格.png"
+                    .bomb = False
+                    .Rclick = True
+                    .Lclick = True
+                    .named = 0
+                    .transparet = 0.7
+                End With
+            Next roundj
+    Next roundi
+End Sub
+
+Public Sub Creat_mine() '生成地雷
+    If FristClick Then
+        Randomize
+        For roundi = 1 To mine
+            minex = Int(Rnd * reseaux + 1)
+            miney = Int(Rnd * reseauy + 1)
+            mine_again = True
+            Do While mine_again
+                If reseau(minex(roundi), miney(roundi)).bomb And Not reseau(minex(roundi), miney(roundi)).Rclick Or _
+                   reseau(minex(roundi), miney(roundi)).bomb And Not reseau(minex(roundi), miney(roundi)).Lclick Then
+                    minex(roundi) = Int(Rnd * reseaux + 1)
+                    miney(roundi) = Int(Rnd * reseauy + 1)
+                Else
+                    mine_again = False
+                End If
+            Loop
+            reseau(minex(roundi), miney(roundi)).bomb = True
+        Next
+        FristClick = False
+    End If
+End Sub
+
+Public Sub Lbutton(X As Integer, y As Integer)
+    If X >= 1 And X <= reseaux And y >= 1 And y <= reseauy Then
+        If FristClick Then
+            Call Creat_mine
+        End If
+        If Not reseau(X, y).bomb And reseau(X, y).Rclick And reseau(X, y).Lclick Then
+            reseau(X, y).Rclick = False
+            If Numberofmines(X, y) = 0 Then
+                Lbutton X, y - 1: Lbutton X, y + 1: Lbutton X + 1, y: Lbutton X - 1, y
+                Lbutton X - 1, y - 1: Lbutton X + 1, y + 1: Lbutton X + 1, y - 1: Lbutton X - 1, y + 1
+            Else
+                reseau(X, y).named = CStr(Numberofmines(X, y)) & ".png"
+            End If
+        ElseIf reseau(X, y).bomb And reseau(X, y).Rclick And reseau(X, y).Lclick Then
+            reseau(X, y).named = "x.png"
+        End If
+    End If
+End Sub
+
+Public Sub Rbutton(X As Integer, y As Integer)
+    If FristClick Then
+        Call Creat_mine
+    End If
+    If reseau(X, y).Rclick Then
+        reseau(X, y).number = reseau(X, y).number + 1
+        If reseau(X, y).number > 2 Then reseau(X, y).number = 0
+        reseau(X, y).Lclick = False
+        Select Case reseau(X, y).number
+            Case 0
+                reseau(X, y).named = "游戏网格.png"
+                reseau(X, y).Lclick = True
+            Case 1
+                reseau(X, y).named = "红旗.png"
+            Case 2
+                reseau(X, y).named = "问号.png"
+        End Select
+    End If
+End Sub
+
+Public Sub Update()
+    '游戏每一帧的过程（绘制过程请放在此处）
+    
+    Page.Clear '清空画布
+    '================================================================
+    '   示例：绘制文字
+    '   Page.Writes "我是文字", 20,20, Color:=argb(255, 0, 0, 0)
+    '================================================================
+    StartScrollArea Page, junior '开启卷轴
+        Page.DrawImage "游戏背景.png", GW / 2 + reelx, GH / 2 + reely, alpha:=0.5, pos:=posOnCenter
+        
+End Sub
+Public Sub Wheel(Direction As Integer, Depth As Single)
+    '鼠标滚轮事件
+    'Direction:方向，Depth：深度
+End Sub
+Public Sub AnimationMsg(id As String, msg As String)
+    '动画消息接收
+End Sub
+Public Sub Enter()
+    '页面进入事件
+    Erase reseau
+    Erase minex
+    Erase miney
+    ReDim reseau(1 To reseaux, 1 To reseauy)
+    ReDim minex(1 To mine)
+    ReDim miney(1 To mine)
+    Call Initial
+    FristClick = False
+    reelx = 0: reely = 0
+End Sub
+Public Sub Leave()
+    '页面离开事件
+End Sub
+Public Sub Gotfocus()
+    '窗口取得焦点事件
+End Sub
+Public Sub Lostfocus()
+    '窗口失去焦点事件
+End Sub
+Public Sub AnimationDone(id As Integer)
+    '动画播放结束事件
+    'id：结束的动画ID
+End Sub
+Private Sub Class_Initialize()
+    '创建页面绘制器
+    Set Page = New GPage
+    Page.Create Me
+    '导入游戏资源
+    Page.Res.NewImages App.path & "\assets"
+    '创建页面
+    junior = CreateScrollArea(reelw, reely)
+    ECore.Add Page, "Amain"
+    
+    '===============================================
+    '   如果需要添加动画，请放置在此处
+    
+    '===============================================
+End Sub
