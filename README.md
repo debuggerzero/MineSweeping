@@ -3,3 +3,6 @@
 
 ## 2.游戏目标
 * 找到空方块并避免触雷。
+----
+* 基于开源框架 
+[Emerald](https://github.com/buger404/Emerald) 
